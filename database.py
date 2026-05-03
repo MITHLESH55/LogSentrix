@@ -2,8 +2,20 @@ import sqlite3
 import os
 from datetime import datetime
 from contextlib import contextmanager
+from pathlib import Path
 
-DB_PATH = "database/logs.db"
+# ================================================================
+# DATABASE PATH RESOLUTION
+# ================================================================
+
+def get_db_path():
+    """Get absolute database path for PythonAnywhere compatibility."""
+    # Get the directory of this file
+    base_dir = Path(__file__).resolve().parent
+    db_dir = base_dir / "database"
+    return str(db_dir / "logs.db")
+
+DB_PATH = get_db_path()
 
 # ================================================================
 # DATABASE INITIALIZATION & CONNECTION
@@ -11,38 +23,55 @@ DB_PATH = "database/logs.db"
 
 @contextmanager
 def get_db_connection():
-    """Context manager for database connections."""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    """Context manager for database connections with PythonAnywhere support."""
+    # Ensure database directory exists
+    db_dir = os.path.dirname(DB_PATH)
+    if not os.path.exists(db_dir):
+        try:
+            os.makedirs(db_dir, mode=0o755, exist_ok=True)
+        except Exception as e:
+            raise RuntimeError(f"Failed to create database directory '{db_dir}': {e}")
+    
+    # Check write permissions
+    if not os.access(os.path.dirname(DB_PATH), os.W_OK):
+        raise RuntimeError(f"No write permission for database directory: {db_dir}")
+    
     try:
+        conn = sqlite3.connect(DB_PATH, timeout=10.0)  # Timeout for PythonAnywhere
+        conn.row_factory = sqlite3.Row
+        # Enable foreign keys
+        conn.execute("PRAGMA foreign_keys = ON")
         yield conn
+    except sqlite3.OperationalError as e:
+        raise RuntimeError(f"Database connection error: {e}")
     finally:
         conn.close()
 
 
 def init_db():
-    """Initialize all database tables."""
-    os.makedirs("database", exist_ok=True)
-    
-    with get_db_connection() as conn:
-        c = conn.cursor()
+    """Initialize all database tables with proper error handling."""
+    try:
+        print(f"[DB] Initializing database at: {DB_PATH}")
         
-        # --------------------------
-        # USERS TABLE
-        # --------------------------
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS users(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            email TEXT,
-            role TEXT DEFAULT 'analyst',
-            is_active BOOLEAN DEFAULT 1,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            last_login DATETIME,
-            last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-        """)
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            
+            # --------------------------
+            # USERS TABLE
+            # --------------------------
+            c.execute("""
+            CREATE TABLE IF NOT EXISTS users(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                email TEXT,
+                role TEXT DEFAULT 'analyst',
+                is_active BOOLEAN DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                last_login DATETIME,
+                last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+            """)
         
         # --------------------------
         # LOGS TABLE
@@ -302,6 +331,12 @@ def init_db():
         c.execute("CREATE INDEX IF NOT EXISTS idx_ip_reputation_threat ON ip_reputation(threat_level)")
         
         conn.commit()
+        print(f"[DB] ✅ Database initialized successfully at: {DB_PATH}")
+        return True
+        
+    except Exception as e:
+        print(f"[DB ERROR] ❌ Failed to initialize database: {e}")
+        raise RuntimeError(f"Database initialization failed: {e}")
 
 
 # ================================================================
@@ -309,8 +344,7 @@ def init_db():
 # ================================================================
 
 def create_user(username, password_hash, email=None, role='analyst'):
-    """Create a new user."""
-    print(f"[DB] Attempting to create user: {username}")
+    """Create a new user with comprehensive error handling."""
     try:
         with get_db_connection() as conn:
             c = conn.cursor()
@@ -319,14 +353,19 @@ def create_user(username, password_hash, email=None, role='analyst'):
             VALUES (?, ?, ?, ?)
             """, (username, password_hash, email, role))
             conn.commit()
-            print(f"[DB] Successfully created user: {username}")
+            print(f"[DB] ✅ User created: {username}")
             return True
-    except sqlite3.IntegrityError:
-        print(f"[DB] Error: User '{username}' already exists.")
-        return False
+    except sqlite3.IntegrityError as e:
+        if "UNIQUE constraint failed" in str(e):
+            print(f"[DB] ⚠️  User already exists: {username}")
+            return False
+        raise
+    except sqlite3.OperationalError as e:
+        print(f"[DB ERROR] ❌ Database operational error for user '{username}': {e}")
+        raise RuntimeError(f"Database error: {e}")
     except Exception as e:
-        print(f"[DB ERROR] Creating user '{username}': {e}")
-        return False
+        print(f"[DB ERROR] ❌ Failed to create user '{username}': {type(e).__name__}: {e}")
+        raise
 
 
 def get_user(username):

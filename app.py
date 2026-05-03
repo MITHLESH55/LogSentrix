@@ -12,6 +12,8 @@ from pathlib import Path
 import numpy as np
 from sklearn.ensemble import IsolationForest
 import logging
+import sys
+import sqlite3
 
 from flask import Flask, render_template, jsonify, redirect, url_for, request, session
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
@@ -29,6 +31,30 @@ import time
 import threading
 
 # ================================================================
+# LOGGING CONFIGURATION FOR DEBUGGING
+# ================================================================
+def setup_logging():
+    """Configure logging for better error tracking."""
+    log_dir = Path(__file__).resolve().parent / "logs"
+    log_dir.mkdir(exist_ok=True)
+    
+    log_file = log_dir / "app.log"
+    
+    # Configure root logger
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='[%(asctime)s] %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(str(log_file)),
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
+    
+    return logging.getLogger(__name__)
+
+logger = setup_logging()
+
+# ================================================================
 # FLASK APP INITIALIZATION
 # ================================================================
 app = Flask(__name__)
@@ -38,6 +64,29 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hour
 
 # ================================================================
+# DATABASE INITIALIZATION ON APP START
+# ================================================================
+def init_app_database():
+    """Initialize database when Flask app starts."""
+    try:
+        logger.info("=" * 80)
+        logger.info("🚀 LogSentrix Starting Up")
+        logger.info("=" * 80)
+        init_db()
+        logger.info("✅ Database initialization completed successfully")
+        return True
+    except Exception as e:
+        logger.critical(f"❌ CRITICAL: Database initialization failed: {e}", exc_info=True)
+        print(f"[CRITICAL] Database initialization failed: {e}")
+        return False
+
+# Initialize database on app startup
+with app.app_context():
+    if not init_app_database():
+        logger.error("Continuing with uninitialized database. Registration will fail.")
+        print("[ERROR] Database failed to initialize. Some features may not work.")
+
+# ================================================================
 # FLASK-LOGIN SETUP
 # ================================================================
 login_manager = LoginManager()
@@ -45,8 +94,6 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Please log in to access the security dashboard.'
 login_manager.login_message_category = 'info'
-
-logger = logging.getLogger(__name__)
 
 # ================================================================
 # USER MODEL
@@ -132,22 +179,24 @@ def login():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    """Handle user registration."""
+    """Handle user registration with detailed error logging."""
     # Redirect if already logged in
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
     
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        confirm_password = request.form.get('confirm_password')
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
+        confirm_password = request.form.get('confirm_password', '').strip()
         
         # Validate input
         if not username or not password or not confirm_password:
+            logger.warning(f"Registration attempt with missing fields from {request.remote_addr}")
             return render_template('register.html', error='All fields are required.'), 400
         
         # Check username length
         if len(username) < 3:
+            logger.warning(f"Registration with short username '{username}' from {request.remote_addr}")
             return render_template('register.html', error='Username must be at least 3 characters long.'), 400
         
         # Check password length
@@ -159,21 +208,38 @@ def register():
             return render_template('register.html', error='Passwords do not match.'), 400
         
         # Check if username already exists in database
-        if get_user(username):
-            logger.warning(f"Registration attempt with existing username: {username}")
-            return render_template('register.html', error='Username already exists. Please choose another.'), 400
+        try:
+            if get_user(username):
+                logger.warning(f"Registration attempt with existing username: {username} from {request.remote_addr}")
+                return render_template('register.html', error='Username already exists. Please choose another.'), 400
+        except Exception as e:
+            logger.error(f"Error checking existing user '{username}': {e}", exc_info=True)
+            return render_template('register.html', error='Database error while checking username. Please try again.'), 500
         
         # Create new user in database
         try:
+            logger.info(f"Attempting to register new user: {username} from {request.remote_addr}")
             hashed_pw = generate_password_hash(password)
-            if create_user(username, hashed_pw):
-                logger.info(f"New user '{username}' registered successfully from {request.remote_addr}")
+            
+            # Call create_user with full error context
+            result = create_user(username, hashed_pw)
+            
+            if result:
+                logger.info(f"✅ User registration successful: {username}")
                 return render_template('register.html', success='Account created successfully! You can now login.'), 200
             else:
-                raise Exception("Database insertion failed")
+                logger.warning(f"User creation returned False for: {username}")
+                return render_template('register.html', error='Username already exists or registration failed. Please try again.'), 400
+                
+        except sqlite3.IntegrityError as e:
+            logger.error(f"Database integrity error during registration of '{username}': {e}", exc_info=True)
+            return render_template('register.html', error='Username already exists or database error. Please try again.'), 400
+        except RuntimeError as e:
+            logger.error(f"Runtime error during user creation: {e}", exc_info=True)
+            return render_template('register.html', error=f'Database error: {str(e)}'), 500
         except Exception as e:
-            logger.error(f"Error registering user {username}: {e}")
-            return render_template('register.html', error='An error occurred during registration. Please try again.'), 500
+            logger.error(f"Unexpected error registering user {username}: {type(e).__name__}: {e}", exc_info=True)
+            return render_template('register.html', error='An unexpected error occurred during registration. Please try again.'), 500
     
     return render_template('register.html')
 
