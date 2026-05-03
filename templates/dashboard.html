@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>LogSentrix AI - Security Dashboard</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-pQ5m1M6QDEbZuqWAe4iHkS0U4Rhq7uYG7TNjVYcgzVeowLXqbHTYqo7PRo1GZ5V3CWFSmrUHUZJdro0aNw3r0Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+
+<body>
+    <div class="page-shell">
+        <header class="dashboard-header">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div class="header-content">
+                    <p class="eyebrow">Security Operations Center</p>
+                    <h1>LogSentrix AI</h1>
+                    <p class="dashboard-copy">A real-time security monitoring system that detects suspicious activities and provides risk-based analysis.</p>
+                </div>
+                <div class="user-menu">
+                    <div class="user-info">
+                        <i class="fas fa-user-circle"></i>
+                        <span class="username" style="text-transform: lowercase;">{{ current_user.username }}</span>
+                    </div>
+                    <a href="{{ url_for('logout') }}" class="logout-btn" title="Sign out of your account">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <div id="critical-banner" class="critical-banner" style="display: none;">
+            <i class="fas fa-exclamation-triangle"></i> CRITICAL ATTACK DETECTED! Immediate action required.
+        </div>
+
+        <section class="overview-grid">
+            <article class="stat-card">
+                <div class="stat-icon bg-blue"><i class="fas fa-server"></i></div>
+                <div>
+                    <p class="stat-label">Total Logs</p>
+                    <p class="stat-value">{{ total }}</p>
+                </div>
+            </article>
+            <article class="stat-card">
+                <div class="stat-icon bg-red"><i class="fas fa-user-lock"></i></div>
+                <div>
+                    <p class="stat-label">Failed Logins</p>
+                    <p class="stat-value">{{ failed }}</p>
+                </div>
+            </article>
+            <article class="stat-card">
+                <div class="stat-icon bg-violet"><i class="fas fa-robot"></i></div>
+                <div>
+                    <p class="stat-label">AI Anomalies</p>
+                    <p class="stat-value">{{ anomalies }}</p>
+                </div>
+            </article>
+            <article class="stat-card">
+                <div class="stat-icon bg-gold"><i class="fas fa-network-wired"></i></div>
+                <div>
+                    <p class="stat-label">Top Attacking IP</p>
+                    <p class="stat-value">{{ top_ip }}</p>
+                </div>
+            </article>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2>World Map Visualization</h2>
+                    <p class="panel-copy">Attack origins plotted on interactive map with risk-based coloring.</p>
+                </div>
+            </div>
+            <div id="map" style="height: 400px;"></div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2>Threat Alerts</h2>
+                    <p class="panel-copy">Prioritized alerts with severity, risk score, and threat source classification.</p>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table class="alerts-table" id="alerts-table">
+                    <thead>
+                        <tr>
+                            <th>Attack Type</th>
+                            <th>IP Address</th>
+                            <th>Attempts</th>
+                            <th>Severity</th>
+                            <th>Risk Score</th>
+                            <th>Location</th>
+                            <th>Threat Level</th>
+                            <th>Source Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for alert in alerts %}
+                        {% set risk_class = 'risk-low' if alert.risk < 50 else ('risk-medium' if alert.risk <= 80 else 'risk-high') %}
+                        <tr class="alert-row severity-{{ alert.severity | lower }}">
+                            <td>{{ alert.type }}</td>
+                            <td>{{ alert.ip }}</td>
+                            <td>{{ alert.attempts }}</td>
+                            <td><span class="badge severity-{{ alert.severity | lower }}">{{ alert.severity }}</span></td>
+                            <td><span class="badge risk-badge {{ risk_class }}" title="Risk score is calculated as min(100, attempts * 2)">{{ alert.risk }}%</span></td>
+                            <td>{{ alert.country }}, {{ alert.city }}</td>
+                            <td>
+                                <span class="badge source-{{ alert.threat_source | lower | replace(' ', '-') }}">
+                                    {{ alert.threat_source }}
+                                </span>
+                            </td>
+
+                            <td>
+                                <span class="badge source-{{ alert.source_type | lower }}">
+                                    {{ alert.source_type }}
+                                </span>
+                            </td>
+
+                                               
+                        
+                        
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2>Top Attackers</h2>
+                    <p class="panel-copy">Highest-volume attacking IPs based on failed login counts.</p>
+                </div>
+            </div>
+            <div class="table-wrap table-compact">
+                <table id="attackers-table">
+                    <thead>
+                        <tr>
+                            <th>IP Address</th>
+                            <th>Failed Attempts</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ip, attempts in top_attackers.items() %}
+                        <tr>
+                            <td>{{ ip }}</td>
+                            <td>{{ attempts }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2>Top Risky Locations</h2>
+                    <p class="panel-copy">Countries with highest attack counts.</p>
+                </div>
+            </div>
+            <div class="table-wrap table-compact">
+                <table id="locations-table">
+                    <thead>
+                        <tr>
+                            <th>Country</th>
+                            <th>Attacks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for country, count in top_risky.items() %}
+                        <tr>
+                            <td>{{ country }}</td>
+                            <td>{{ count }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="chart-grid">
+            <div class="chart-panel">
+                <div class="panel-header small">
+                    <h3>Failed Login Attempts by IP</h3>
+                </div>
+                <div class="chart-container">
+                    <canvas id="attackChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-panel">
+                <div class="panel-header small">
+                    <h3>Attack Distribution</h3>
+                </div>
+                <div class="chart-container pie-container">
+                    <canvas id="pieChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-panel full-width">
+                <div class="panel-header small">
+                    <h3>Attack Trend</h3>
+                </div>
+                <div class="chart-container">
+                    <canvas id="lineChart"></canvas>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+
+// ================================================================
+// GLOBAL CHART INSTANCES - Store for smooth updates
+// ================================================================
+var charts = {
+    attackChart: null,
+    pieChart: null,
+    lineChart: null
+};
+
+var map = null;
+var existingMarkers = [];
+
+var ipLabels = {{ ip_labels | tojson }};
+var ipValues = {{ ip_values | tojson }};
+
+var trendLabels = {{ trend_labels | tojson }};
+var trendValues = {{ trend_values | tojson }};
+
+
+// ================================================================
+// INITIALIZE CHARTS
+// ================================================================
+
+function initializeCharts() {
+    // BAR CHART
+    charts.attackChart = new Chart(document.getElementById('attackChart'), {
+        type: 'bar',
+        data: {
+            labels: ipLabels,
+            datasets: [{
+                label: 'Failed Login Attempts',
+                data: ipValues,
+                backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                borderColor: '#10b981',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { labels: { color: "white" } }
+            },
+            scales: {
+                x: { ticks: { color: "white" }, grid: { color: "#334155" } },
+                y: { ticks: { color: "white" }, grid: { color: "#334155" }, beginAtZero: true }
+            }
+        }
+    });
+
+    // PIE CHART
+    charts.pieChart = new Chart(document.getElementById('pieChart'), {
+        type: 'pie',
+        data: {
+            labels: ipLabels,
+            datasets: [{
+                data: ipValues,
+                backgroundColor: [
+                    'rgba(16, 185, 129, 0.8)',
+                    'rgba(74, 222, 128, 0.8)',
+                    'rgba(5, 150, 105, 0.8)',
+                    'rgba(52, 211, 153, 0.8)',
+                    'rgba(6, 78, 59, 0.8)'
+                ],
+                borderColor: '#030804',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { labels: { color: "white" } }
+            }
+        }
+    });
+
+    // LINE CHART
+    charts.lineChart = new Chart(document.getElementById('lineChart'), {
+        type: 'line',
+        data: {
+            labels: trendLabels,
+            datasets: [{
+                label: 'Attack Trend',
+                data: trendValues,
+                borderColor: '#4ade80',
+                backgroundColor: 'rgba(74, 222, 128, 0.1)',
+                fill: true,
+                tension: 0.4,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { labels: { color: "white" } }
+            },
+            scales: {
+                x: { ticks: { color: "white" }, grid: { color: "#334155" } },
+                y: { ticks: { color: "white" }, grid: { color: "#334155" }, beginAtZero: true }
+            }
+        }
+    });
+}
+
+// ================================================================
+// UPDATE CHARTS - Smooth updates without flickering
+// ================================================================
+
+function updateCharts(newData) {
+    // Update bar chart
+    if (charts.attackChart && newData.ip_labels && newData.ip_values) {
+        charts.attackChart.data.labels = newData.ip_labels;
+        charts.attackChart.data.datasets[0].data = newData.ip_values;
+        charts.attackChart.update('none'); // 'none' = no animation, smooth transition
+    }
+
+    // Update pie chart
+    if (charts.pieChart && newData.ip_labels && newData.ip_values) {
+        charts.pieChart.data.labels = newData.ip_labels;
+        charts.pieChart.data.datasets[0].data = newData.ip_values;
+        charts.pieChart.update('none');
+    }
+
+    // Update line chart
+    if (charts.lineChart && newData.trend_labels && newData.trend_values) {
+        charts.lineChart.data.labels = newData.trend_labels;
+        charts.lineChart.data.datasets[0].data = newData.trend_values;
+        charts.lineChart.update('none');
+    }
+}
+
+// ================================================================
+// UPDATE STATS CARDS
+// ================================================================
+
+function updateStats(data) {
+    var statCards = document.querySelectorAll('.stat-value');
+    if (statCards[0]) statCards[0].textContent = data.total || 0;
+    if (statCards[1]) statCards[1].textContent = data.failed || 0;
+    if (statCards[2]) statCards[2].textContent = data.alerts ? data.alerts.filter(a => a.severity === 'CRITICAL').length : 0;
+    if (statCards[3]) statCards[3].textContent = data.alerts && data.alerts.length > 0 ? data.alerts[0].ip : 'None';
+}
+
+// ================================================================
+// UPDATE ALERTS TABLE
+// ================================================================
+
+function updateAlertsTable(alerts) {
+    var tbody = document.querySelector('.alerts-table tbody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    if (!alerts || alerts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;">No active threats detected</td></tr>';
+        return;
+    }
+
+    alerts.forEach(function(alert) {
+        var risk_class = alert.risk < 50 ? 'risk-low' : (alert.risk <= 80 ? 'risk-medium' : 'risk-high');
+        var row = document.createElement('tr');
+        row.className = 'alert-row severity-' + (alert.severity ? alert.severity.toLowerCase() : 'low');
+        
+        row.innerHTML = 
+            '<td>' + (alert.type || '') + '</td>' +
+            '<td>' + (alert.ip || '') + '</td>' +
+            '<td>' + (alert.attempts || 0) + '</td>' +
+            '<td><span class="badge severity-' + (alert.severity ? alert.severity.toLowerCase() : 'low') + '">' + (alert.severity || 'LOW') + '</span></td>' +
+            '<td><span class="badge risk-badge ' + risk_class + '" title="Risk score">' + (alert.risk || 0) + '%</span></td>' +
+            '<td>' + (alert.country || 'Unknown') + ', ' + (alert.city || '') + '</td>' +
+            '<td><span class="badge source-' + (alert.threat_source ? alert.threat_source.toLowerCase().replace(/\s+/g, '-') : 'unknown') + '">' + (alert.threat_source || 'Unknown') + '</span></td>' +
+            '<td><span class="badge source-' + (alert.source_type ? alert.source_type.toLowerCase() : 'unknown') + '">' + (alert.source_type || 'Unknown') + '</span></td>';
+        
+        tbody.appendChild(row);
+    });
+}
+
+// ================================================================
+// UPDATE TOP ATTACKERS TABLE
+// ================================================================
+
+function updateTopAttackers(alerts) {
+    var tbody = document.querySelector('#attackers-table tbody');
+    if (!tbody) return;
+
+    // Create a map of IP to attempts from alerts
+    var ipMap = {};
+    if (alerts) {
+        alerts.forEach(function(alert) {
+            if (alert.ip) {
+                ipMap[alert.ip] = (ipMap[alert.ip] || 0) + alert.attempts;
+            }
+        });
+    }
+
+    // Sort by attempts descending and get top 5
+    var sorted = Object.entries(ipMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+    tbody.innerHTML = '';
+    if (sorted.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="2" style="text-align: center; padding: 20px;">No attacks detected</td></tr>';
+        return;
+    }
+
+    sorted.forEach(function(entry) {
+        var row = document.createElement('tr');
+        row.innerHTML = '<td>' + entry[0] + '</td><td>' + entry[1] + '</td>';
+        tbody.appendChild(row);
+    });
+}
+
+// ================================================================
+// UPDATE TOP RISKY LOCATIONS TABLE
+// ================================================================
+
+function updateTopLocations(topRisky) {
+    var tbody = document.querySelector('#locations-table tbody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+    if (!topRisky || Object.keys(topRisky).length === 0) {
+        tbody.innerHTML = '<tr><td colspan="2" style="text-align: center; padding: 20px;">No geographic threats</td></tr>';
+        return;
+    }
+
+    Object.entries(topRisky).forEach(function(entry) {
+        var row = document.createElement('tr');
+        row.innerHTML = '<td>' + entry[0] + '</td><td>' + entry[1] + '</td>';
+        tbody.appendChild(row);
+    });
+}
+
+// ================================================================
+// UPDATE MAP MARKERS
+// ================================================================
+
+function updateMap(alerts) {
+    // Clear existing markers
+    existingMarkers.forEach(function(marker) {
+        map.removeLayer(marker);
+    });
+    existingMarkers = [];
+
+    if (!alerts || alerts.length === 0) return;
+
+    alerts.forEach(function(alert) {
+        if (alert.lat && alert.lon && alert.lat !== 0 && alert.lon !== 0) {
+            var color = 'green';
+            if (alert.threat_source && (alert.threat_source.includes('Malicious') || alert.threat_source.includes('Confirmed'))) {
+                color = 'red';
+            } else if (alert.threat_source && alert.threat_source.includes('Suspicious')) {
+                color = 'orange';
+            }
+
+            var marker = L.circleMarker([alert.lat, alert.lon], {
+                color: color,
+                fillColor: color,
+                fillOpacity: 0.5,
+                radius: 5
+            }).addTo(map);
+
+            marker.bindPopup(
+                '<b>IP:</b> ' + alert.ip + '<br>' +
+                '<b>Country:</b> ' + alert.country + '<br>' +
+                '<b>City:</b> ' + alert.city + '<br>' +
+                '<b>Attempts:</b> ' + alert.attempts + '<br>' +
+                '<b>Risk:</b> ' + alert.risk + '%'
+            );
+
+            existingMarkers.push(marker);
+        }
+    });
+}
+
+// ================================================================
+// CRITICAL BANNER UPDATE
+// ================================================================
+
+function updateCriticalBanner(alerts) {
+    var banner = document.getElementById('critical-banner');
+    if (!banner) return;
+
+    var hasCritical = alerts && alerts.some(function(alert) { return alert.severity === 'CRITICAL'; });
+    banner.style.display = hasCritical ? 'block' : 'none';
+}
+
+// ================================================================
+// FETCH DATA FROM SERVER
+// ================================================================
+
+function fetchDashboardData() {
+    fetch('/data')
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            if (data.error) {
+                console.error('Error fetching data:', data.error);
+                return;
+            }
+
+            // Update all UI elements smoothly
+            updateStats(data);
+            updateAlertsTable(data.alerts);
+            updateTopAttackers(data.alerts);
+            updateTopLocations(data.top_risky);
+            updateMap(data.alerts);
+            updateCriticalBanner(data.alerts);
+            updateCharts(data);
+
+            console.log('[REALTIME] Dashboard updated at ' + new Date().toLocaleTimeString());
+        })
+        .catch(function(error) {
+            console.error('[ERROR] Failed to fetch dashboard data:', error);
+        });
+}
+
+// ================================================================
+// INITIALIZE PAGE
+// ================================================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize map
+    map = L.map('map').setView([20, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Initialize charts with initial data
+    initializeCharts();
+
+    // Initial map population
+    var alerts = {{ alerts | tojson }};
+    updateMap(alerts);
+    updateCriticalBanner(alerts);
+
+    // Set up real-time refresh - every 5 seconds
+    setInterval(function() {
+        fetchDashboardData();
+    }, 5000);
+
+    // Log that dashboard is ready
+    console.log('[INFO] Real-time dashboard initialized. Updating every 5 seconds.');
+});
+
+    </script>
+
+</body>
+</html>

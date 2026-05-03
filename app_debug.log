@@ -1,0 +1,107 @@
+--- LOGIN CALL ---
+LOG_FILE: C:\Users\mithlesh_2\Desktop\INSL_Project final   ffff\INSL_Project\logs\server.log
+Exists: True
+--- LOGIN CALL ---
+LOG_FILE: C:\Users\mithlesh_2\Desktop\INSL_Project final   ffff\INSL_Project\logs\server.log
+Exists: True
+Parsed records in login: 1000
+--- LOGIN CALL ---
+LOG_FILE: C:\Users\mithlesh_2\Desktop\INSL_Project final   ffff\INSL_Project\logs\server.log
+Exists: True
+Parsed records in login: 1000
+--- DASHBOARD ERROR ---
+[ERROR] Dashboard: name 'get_ip_info' is not defined
+Traceback (most recent call last):
+  File "C:\Users\mithlesh_2\Desktop\INSL_Project final   ffff\INSL_Project\app.py", line 330, in dashboard
+    info = get_ip_info(ip)
+           ^^^^^^^^^^^
+NameError: name 'get_ip_info' is not defined
+
+--- DASHBOARD ERROR ---
+[ERROR] Dashboard: name 'get_ip_info' is not defined
+Traceback (most recent call last):
+  File "C:\Users\mithlesh_2\Desktop\INSL_Project final   ffff\INSL_Project\app.py", line 330, in dashboard
+    info = get_ip_info(ip)
+           ^^^^^^^^^^^
+NameError: name 'get_ip_info' is not defined
+
+--- DASHBOARD ERROR ---
+[ERROR] Dashboard: name 'get_ip_info' is not defined
+Traceback (most recent call last):
+  File "C:\Users\mithlesh_2\Desktop\INSL_Project final   ffff\INSL_Project\app.py", line 330, in dashboard
+    info = get_ip_info(ip)
+           ^^^^^^^^^^^
+NameError: name 'get_ip_info' is not defined
+
+--- DASHBOARD ERROR ---
+[ERROR] Dashboard: name 'get_ip_info' is not defined
+Traceback (most recent call last):
+  File "C:\Users\mithlesh_2\Desktop\INSL_Project final   ffff\INSL_Project\app.py", line 330, in dashboard
+    info = get_ip_info(ip)
+           ^^^^^^^^^^^
+NameError: name 'get_ip_info' is not defined
+
+--- DASHBOARD ERROR ---
+[ERROR] Dashboard: name 'get_ip_info' is not defined
+Traceback (most recent call last):
+  File "C:\Users\mithlesh_2\Desktop\INSL_Project final   ffff\INSL_Project\app.py", line 330, in dashboard
+    info = get_ip_info(ip)
+           ^^^^^^^^^^^
+NameError: name 'get_ip_info' is not defined
+
+--- DASHBOARD ERROR ---
+[ERROR] Dashboard: name 'get_ip_info' is not defined
+Traceback (most recent call last):
+  File "C:\Users\mithlesh_2\Desktop\INSL_Project final   ffff\INSL_Project\app.py", line 330, in dashboard
+    info = get_ip_info(ip)
+           ^^^^^^^^^^^
+NameError: name 'get_ip_info' is not defined
+
+--- DASHBOARD ERROR ---
+[ERROR] Dashboard: name 'get_ip_info' is not defined
+Traceback (most recent call last):
+  File "C:\Users\mithlesh_2\Desktop\INSL_Project final   ffff\INSL_Project\app.py", line 330, in dashboard
+    info = get_ip_info(ip)
+           ^^^^^^^^^^^
+NameError: name 'get_ip_info' is not defined
+
+--- DASHBOARD ERROR ---
+[ERROR] Dashboard: name 'get_ip_info' is not defined
+Traceback (most recent call last):
+  File "C:\Users\mithlesh_2\Desktop\INSL_Project final   ffff\INSL_Project\app.py", line 330, in dashboard
+    info = get_ip_info(ip)
+           ^^^^^^^^^^^
+NameError: name 'get_ip_info' is not defined
+
+--- DASHBOARD ERROR ---
+[ERROR] Dashboard: name 'get_ip_info' is not defined
+Traceback (most recent call last):
+  File "C:\Users\mithlesh_2\Desktop\INSL_Project final   ffff\INSL_Project\app.py", line 330, in dashboard
+    info = get_ip_info(ip)
+           ^^^^^^^^^^^
+NameError: name 'get_ip_info' is not defined
+
+--- DASHBOARD ERROR ---
+[ERROR] Dashboard: name 'get_ip_info' is not defined
+Traceback (most recent call last):
+  File "C:\Users\mithlesh_2\Desktop\INSL_Project final   ffff\INSL_Project\app.py", line 330, in dashboard
+    info = get_ip_info(ip)
+           ^^^^^^^^^^^
+NameError: name 'get_ip_info' is not defined
+
+--- DASHBOARD ERROR ---
+[ERROR] Dashboard: name 'get_ip_info' is not defined
+Traceback (most recent call last):
+  File "C:\Users\mithlesh_2\Desktop\INSL_Project final   ffff\INSL_Project\app.py", line 330, in dashboard
+    info = get_ip_info(ip)
+           ^^^^^^^^^^^
+NameError: name 'get_ip_info' is not defined
+
+--- DASHBOARD ERROR ---
+[ERROR] Dashboard: name 'get_ip_info' is not defined
+Traceback (most recent call last):
+  File "C:\Users\mithlesh_2\Desktop\INSL_Project final   ffff\INSL_Project\app.py", line 330, in dashboard
+    info = get_ip_info(ip)
+           ^^^^^^^^^^^
+NameError: name 'get_ip_info' is not defined
+

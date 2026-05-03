@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LogSentrix AI - Security Dashboard Register</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-pQ5m1M6QDEbZuqWAe4iHkS0U4Rhq7uYG7TNjVYcgzVeowLXqbHTYqo7PRo1GZ5V3CWFSmrUHUZJdro0aNw3r0Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background: #050505;
+            background-image: 
+                radial-gradient(circle at center, rgba(0, 255, 0, 0.1) 0%, transparent 100%),
+                linear-gradient(rgba(0, 255, 0, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 0, 0.05) 1px, transparent 1px);
+            background-size: 100% 100%, 20px 20px, 20px 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #00ff00;
+        }
+
+        .register-container {
+            width: 100%;
+            max-width: 450px;
+            padding: 20px;
+        }
+
+        .register-card {
+            background: rgba(0, 10, 0, 0.85);
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+            padding: 40px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.2), inset 0 0 20px rgba(0, 255, 0, 0.1);
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+
+        .register-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .register-header h1 {
+            color: #00ff00;
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        .register-header p {
+            color: #00cc00;
+            font-size: 14px;
+        }
+
+        .register-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #00ff00;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.2);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #00ff00;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #005500;
+            border-radius: 4px;
+            background: #001100;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #00ff00;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+
+        .form-group input::placeholder {
+            color: #005500;
+        }
+
+        .register-btn {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(0, 255, 0, 0.1);
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+            font-size: 15px;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .register-btn:hover {
+            background: #00ff00;
+            color: #000;
+            box-shadow: 0 0 15px #00ff00;
+        }
+
+        .register-btn:active {
+            transform: translateY(0);
+        }
+
+        .error-message {
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            padding: 12px 14px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .error-message i {
+            flex-shrink: 0;
+        }
+
+        .success-message {
+            background: #dcfce7;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+            padding: 12px 14px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .success-message i {
+            flex-shrink: 0;
+        }
+
+        .requirements {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            color: #93c5fd;
+            padding: 14px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .requirements strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #60a5fa;
+        }
+
+        .requirements ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .requirements li {
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .requirements li:before {
+            content: "✓";
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        .register-footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        .register-footer a {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .register-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="register-card">
+            <div class="register-header">
+                <h1>
+                    <div class="register-icon">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    Create Account
+                </h1>
+                <p>Security Operations Center</p>
+            </div>
+
+            {% if error %}
+            <div class="error-message">
+                <i class="fas fa-exclamation-circle"></i>
+                {{ error }}
+            </div>
+            {% endif %}
+
+            {% if success %}
+            <div class="success-message" style="background: rgba(0, 255, 0, 0.1); border: 1px solid #00ff00; color: #00ff00;">
+                <i class="fas fa-check-circle"></i>
+                {{ success }} <a href="{{ url_for('login') }}" style="margin-left: auto; color: #00ff00; text-decoration: underline;">Redirecting to login...</a>
+            </div>
+            <script>
+                setTimeout(function() {
+                    window.location.href = "{{ url_for('login') }}";
+                }, 2000);
+            </script>
+            {% endif %}
+
+            <form method="post" id="registerForm">
+                <div class="form-group">
+                    <label for="username">
+                        <i class="fas fa-user" style="margin-right: 6px;"></i>Username
+                    </label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        name="username" 
+                        placeholder="Choose a username (min 3 characters)"
+                        required
+                        autocomplete="username"
+                        minlength="3"
+                        autofocus
+                    />
+                </div>
+
+                <div class="form-group">
+                    <label for="password">
+                        <i class="fas fa-lock" style="margin-right: 6px;"></i>Password
+                    </label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        placeholder="Create a strong password (min 6 characters)"
+                        required
+                        autocomplete="new-password"
+                        minlength="6"
+                    />
+                </div>
+
+                <div class="form-group">
+                    <label for="confirm_password">
+                        <i class="fas fa-lock" style="margin-right: 6px;"></i>Confirm Password
+                    </label>
+                    <input 
+                        type="password" 
+                        id="confirm_password" 
+                        name="confirm_password" 
+                        placeholder="Confirm your password"
+                        required
+                        autocomplete="new-password"
+                        minlength="6"
+                    />
+                </div>
+
+                <button type="submit" class="register-btn">
+                    <i class="fas fa-user-plus"></i>
+                    Create Account
+                </button>
+            </form>
+
+            <div class="requirements">
+                <strong>Password Requirements:</strong>
+                <ul>
+                    <li>At least 6 characters</li>
+                    <li>Passwords must match</li>
+                    <li>Username at least 3 characters</li>
+                </ul>
+            </div>
+
+            <div class="register-footer">
+                <p>Already have an account? <a href="{{ url_for('login') }}">Sign in here</a></p>
+                <p style="margin-top: 12px; color: #475569;">Secure authentication powered by Flask-Login</p>
+                <p style="margin-top: 8px; color: #475569;">© 2026 LogSentrix AI - All rights reserved</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Password confirmation validation
+        const registerForm = document.getElementById('registerForm');
+        const passwordField = document.getElementById('password');
+        const confirmPasswordField = document.getElementById('confirm_password');
+
+        registerForm.addEventListener('submit', function(e) {
+            // Check if passwords match
+            if (passwordField.value !== confirmPasswordField.value) {
+                e.preventDefault();
+                alert('Passwords do not match!');
+                confirmPasswordField.focus();
+                return false;
+            }
+
+            const submitBtn = registerForm.querySelector('.register-btn');
+            submitBtn.classList.add('loading');
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account...';
+        });
+
+        // Real-time password confirmation check
+        confirmPasswordField.addEventListener('input', function() {
+            if (passwordField.value && this.value && passwordField.value !== this.value) {
+                confirmPasswordField.style.borderColor = '#ef4444';
+                confirmPasswordField.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
+            } else if (passwordField.value && this.value && passwordField.value === this.value) {
+                confirmPasswordField.style.borderColor = '#10b981';
+                confirmPasswordField.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.1)';
+            } else {
+                confirmPasswordField.style.borderColor = '#334155';
+                confirmPasswordField.style.boxShadow = 'none';
+            }
+        });
+
+        // Keyboard navigation
+        document.getElementById('username').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                passwordField.focus();
+                e.preventDefault();
+            }
+        });
+
+        passwordField.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                confirmPasswordField.focus();
+                e.preventDefault();
+            }
+        });
+
+        confirmPasswordField.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                registerForm.submit();
+            }
+        });
+    </script>
+</body>
+</html>
