@@ -33,17 +33,18 @@ def get_db_connection():
             raise RuntimeError(f"Failed to create database directory '{db_dir}': {e}")
     
     # Check write permissions
-    if not os.access(os.path.dirname(DB_PATH), os.W_OK):
+    if not os.access(db_dir, os.W_OK):
         raise RuntimeError(f"No write permission for database directory: {db_dir}")
     
+    # Create and yield connection
+    conn = sqlite3.connect(DB_PATH, timeout=10.0, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
     try:
-        conn = sqlite3.connect(DB_PATH, timeout=10.0)  # Timeout for PythonAnywhere
-        conn.row_factory = sqlite3.Row
-        # Enable foreign keys
-        conn.execute("PRAGMA foreign_keys = ON")
         yield conn
-    except sqlite3.OperationalError as e:
-        raise RuntimeError(f"Database connection error: {e}")
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         conn.close()
 
@@ -55,6 +56,7 @@ def init_db():
         
         with get_db_connection() as conn:
             c = conn.cursor()
+            c.execute("PRAGMA foreign_keys = ON")
             
             # --------------------------
             # USERS TABLE
@@ -72,265 +74,264 @@ def init_db():
                 last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
             )
             """)
+            
+            # --------------------------
+            # LOGS TABLE
+            # --------------------------
+            c.execute("""
+            CREATE TABLE IF NOT EXISTS logs(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                time TEXT NOT NULL,
+                status TEXT NOT NULL,
+                user TEXT NOT NULL,
+                ip TEXT NOT NULL,
+                source_file TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+            """)
+            
+            # --------------------------
+            # ATTACK HISTORY TABLE
+            # --------------------------
+            c.execute("""
+            CREATE TABLE IF NOT EXISTS attack_history(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ip TEXT NOT NULL,
+                attack_type TEXT NOT NULL,
+                attempts INTEGER DEFAULT 1,
+                severity TEXT NOT NULL,
+                description TEXT,
+                status TEXT DEFAULT 'open',
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                resolved_at DATETIME,
+                resolved_by TEXT
+            )
+            """)
+            
+            # --------------------------
+            # ANOMALY LOGS TABLE
+            # --------------------------
+            c.execute("""
+            CREATE TABLE IF NOT EXISTS anomaly_logs(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ip TEXT NOT NULL,
+                user TEXT NOT NULL,
+                reason TEXT NOT NULL,
+                anomaly_score REAL,
+                features TEXT,
+                status TEXT DEFAULT 'open',
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                resolved_at DATETIME
+            )
+            """)
+            
+            # --------------------------
+            # IP REPUTATION TABLE
+            # --------------------------
+            c.execute("""
+            CREATE TABLE IF NOT EXISTS ip_reputation(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ip TEXT UNIQUE NOT NULL,
+                reputation TEXT NOT NULL,
+                threat_level TEXT,
+                abuse_reports INTEGER DEFAULT 0,
+                blacklist_count INTEGER DEFAULT 0,
+                last_checked DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                source TEXT
+            )
+            """)
+            
+            # --------------------------
+            # IP WHITELIST TABLE
+            # --------------------------
+            c.execute("""
+            CREATE TABLE IF NOT EXISTS ip_whitelist(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ip TEXT UNIQUE NOT NULL,
+                description TEXT,
+                added_by TEXT,
+                reason TEXT,
+                is_active BOOLEAN DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                expires_at DATETIME
+            )
+            """)
+            
+            # --------------------------
+            # IP BLACKLIST TABLE
+            # --------------------------
+            c.execute("""
+            CREATE TABLE IF NOT EXISTS ip_blacklist(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ip TEXT UNIQUE NOT NULL,
+                reason TEXT NOT NULL,
+                severity TEXT DEFAULT 'high',
+                added_by TEXT,
+                is_active BOOLEAN DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                expires_at DATETIME,
+                block_duration INTEGER
+            )
+            """)
+            
+            # --------------------------
+            # ALERTS TABLE
+            # --------------------------
+            c.execute("""
+            CREATE TABLE IF NOT EXISTS alerts(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                alert_type TEXT NOT NULL,
+                severity TEXT NOT NULL,
+                ip TEXT NOT NULL,
+                user TEXT,
+                title TEXT NOT NULL,
+                description TEXT,
+                is_read BOOLEAN DEFAULT 0,
+                is_acknowledged BOOLEAN DEFAULT 0,
+                acknowledged_by TEXT,
+                acknowledged_at DATETIME,
+                action_taken TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                resolved_at DATETIME
+            )
+            """)
+            
+            # --------------------------
+            # EMAIL NOTIFICATIONS TABLE
+            # --------------------------
+            c.execute("""
+            CREATE TABLE IF NOT EXISTS email_notifications(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                recipient_email TEXT NOT NULL,
+                subject TEXT NOT NULL,
+                message TEXT NOT NULL,
+                alert_id INTEGER,
+                status TEXT DEFAULT 'pending',
+                sent_at DATETIME,
+                error_message TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(alert_id) REFERENCES alerts(id)
+            )
+            """)
+            
+            # --------------------------
+            # AUDIT LOGS TABLE
+            # --------------------------
+            c.execute("""
+            CREATE TABLE IF NOT EXISTS audit_logs(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT,
+                action TEXT NOT NULL,
+                resource_type TEXT,
+                resource_id INTEGER,
+                description TEXT,
+                ip_address TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+            """)
+            
+            # --------------------------
+            # THREAT INTELLIGENCE TABLE
+            # --------------------------
+            c.execute("""
+            CREATE TABLE IF NOT EXISTS threat_intelligence(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                threat_id TEXT UNIQUE,
+                threat_type TEXT NOT NULL,
+                source TEXT NOT NULL,
+                description TEXT,
+                affected_ips TEXT,
+                affected_users TEXT,
+                confidence_score REAL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                is_active BOOLEAN DEFAULT 1
+            )
+            """)
+            
+            # --------------------------
+            # SYSTEM SETTINGS TABLE
+            # --------------------------
+            c.execute("""
+            CREATE TABLE IF NOT EXISTS system_settings(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                setting_key TEXT UNIQUE NOT NULL,
+                setting_value TEXT,
+                description TEXT,
+                data_type TEXT DEFAULT 'string',
+                updated_by TEXT,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+            """)
+            
+            # --------------------------
+            # DETECTION RULES TABLE
+            # --------------------------
+            c.execute("""
+            CREATE TABLE IF NOT EXISTS detection_rules(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                rule_name TEXT UNIQUE NOT NULL,
+                rule_type TEXT NOT NULL,
+                condition TEXT NOT NULL,
+                severity TEXT DEFAULT 'medium',
+                is_active BOOLEAN DEFAULT 1,
+                description TEXT,
+                created_by TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+            """)
+            
+            # --------------------------
+            # DASHBOARD STATISTICS TABLE
+            # --------------------------
+            c.execute("""
+            CREATE TABLE IF NOT EXISTS dashboard_stats(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                stat_date DATE UNIQUE,
+                total_logs INTEGER DEFAULT 0,
+                total_alerts INTEGER DEFAULT 0,
+                critical_alerts INTEGER DEFAULT 0,
+                high_alerts INTEGER DEFAULT 0,
+                medium_alerts INTEGER DEFAULT 0,
+                low_alerts INTEGER DEFAULT 0,
+                unique_ips INTEGER DEFAULT 0,
+                unique_users INTEGER DEFAULT 0,
+                attack_attempts INTEGER DEFAULT 0,
+                anomalies_detected INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+            """)
+            
+            # --------------------------
+            # SESSION LOGS TABLE
+            # --------------------------
+            c.execute("""
+            CREATE TABLE IF NOT EXISTS session_logs(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                ip_address TEXT,
+                user_agent TEXT,
+                login_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+                logout_time DATETIME,
+                session_duration INTEGER,
+                status TEXT DEFAULT 'active'
+            )
+            """)
+            
+            # Create indexes for better query performance
+            c.execute("CREATE INDEX IF NOT EXISTS idx_logs_ip ON logs(ip)")
+            c.execute("CREATE INDEX IF NOT EXISTS idx_logs_user ON logs(user)")
+            c.execute("CREATE INDEX IF NOT EXISTS idx_logs_time ON logs(time)")
+            c.execute("CREATE INDEX IF NOT EXISTS idx_attack_history_ip ON attack_history(ip)")
+            c.execute("CREATE INDEX IF NOT EXISTS idx_attack_history_severity ON attack_history(severity)")
+            c.execute("CREATE INDEX IF NOT EXISTS idx_anomaly_logs_ip ON anomaly_logs(ip)")
+            c.execute("CREATE INDEX IF NOT EXISTS idx_alerts_severity ON alerts(severity)")
+            c.execute("CREATE INDEX IF NOT EXISTS idx_alerts_created ON alerts(created_at)")
+            c.execute("CREATE INDEX IF NOT EXISTS idx_audit_logs_user ON audit_logs(user_id)")
+            c.execute("CREATE INDEX IF NOT EXISTS idx_ip_reputation_threat ON ip_reputation(threat_level)")
         
-        # --------------------------
-        # LOGS TABLE
-        # --------------------------
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS logs(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            time TEXT NOT NULL,
-            status TEXT NOT NULL,
-            user TEXT NOT NULL,
-            ip TEXT NOT NULL,
-            source_file TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-        """)
-        
-        # --------------------------
-        # ATTACK HISTORY TABLE
-        # --------------------------
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS attack_history(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            ip TEXT NOT NULL,
-            attack_type TEXT NOT NULL,
-            attempts INTEGER DEFAULT 1,
-            severity TEXT NOT NULL,
-            description TEXT,
-            status TEXT DEFAULT 'open',
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            resolved_at DATETIME,
-            resolved_by TEXT
-        )
-        """)
-        
-        # --------------------------
-        # ANOMALY LOGS TABLE
-        # --------------------------
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS anomaly_logs(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            ip TEXT NOT NULL,
-            user TEXT NOT NULL,
-            reason TEXT NOT NULL,
-            anomaly_score REAL,
-            features TEXT,
-            status TEXT DEFAULT 'open',
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            resolved_at DATETIME
-        )
-        """)
-        
-        # --------------------------
-        # IP REPUTATION TABLE
-        # --------------------------
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS ip_reputation(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            ip TEXT UNIQUE NOT NULL,
-            reputation TEXT NOT NULL,
-            threat_level TEXT,
-            abuse_reports INTEGER DEFAULT 0,
-            blacklist_count INTEGER DEFAULT 0,
-            last_checked DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            source TEXT
-        )
-        """)
-        
-        # --------------------------
-        # IP WHITELIST TABLE
-        # --------------------------
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS ip_whitelist(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            ip TEXT UNIQUE NOT NULL,
-            description TEXT,
-            added_by TEXT,
-            reason TEXT,
-            is_active BOOLEAN DEFAULT 1,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            expires_at DATETIME
-        )
-        """)
-        
-        # --------------------------
-        # IP BLACKLIST TABLE
-        # --------------------------
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS ip_blacklist(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            ip TEXT UNIQUE NOT NULL,
-            reason TEXT NOT NULL,
-            severity TEXT DEFAULT 'high',
-            added_by TEXT,
-            is_active BOOLEAN DEFAULT 1,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            expires_at DATETIME,
-            block_duration INTEGER
-        )
-        """)
-        
-        # --------------------------
-        # ALERTS TABLE
-        # --------------------------
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS alerts(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            alert_type TEXT NOT NULL,
-            severity TEXT NOT NULL,
-            ip TEXT NOT NULL,
-            user TEXT,
-            title TEXT NOT NULL,
-            description TEXT,
-            is_read BOOLEAN DEFAULT 0,
-            is_acknowledged BOOLEAN DEFAULT 0,
-            acknowledged_by TEXT,
-            acknowledged_at DATETIME,
-            action_taken TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            resolved_at DATETIME
-        )
-        """)
-        
-        # --------------------------
-        # EMAIL NOTIFICATIONS TABLE
-        # --------------------------
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS email_notifications(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            recipient_email TEXT NOT NULL,
-            subject TEXT NOT NULL,
-            message TEXT NOT NULL,
-            alert_id INTEGER,
-            status TEXT DEFAULT 'pending',
-            sent_at DATETIME,
-            error_message TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(alert_id) REFERENCES alerts(id)
-        )
-        """)
-        
-        # --------------------------
-        # AUDIT LOGS TABLE
-        # --------------------------
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS audit_logs(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT,
-            action TEXT NOT NULL,
-            resource_type TEXT,
-            resource_id INTEGER,
-            description TEXT,
-            ip_address TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-        """)
-        
-        # --------------------------
-        # THREAT INTELLIGENCE TABLE
-        # --------------------------
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS threat_intelligence(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            threat_id TEXT UNIQUE,
-            threat_type TEXT NOT NULL,
-            source TEXT NOT NULL,
-            description TEXT,
-            affected_ips TEXT,
-            affected_users TEXT,
-            confidence_score REAL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            is_active BOOLEAN DEFAULT 1
-        )
-        """)
-        
-        # --------------------------
-        # SYSTEM SETTINGS TABLE
-        # --------------------------
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS system_settings(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            setting_key TEXT UNIQUE NOT NULL,
-            setting_value TEXT,
-            description TEXT,
-            data_type TEXT DEFAULT 'string',
-            updated_by TEXT,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-        """)
-        
-        # --------------------------
-        # DETECTION RULES TABLE
-        # --------------------------
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS detection_rules(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            rule_name TEXT UNIQUE NOT NULL,
-            rule_type TEXT NOT NULL,
-            condition TEXT NOT NULL,
-            severity TEXT DEFAULT 'medium',
-            is_active BOOLEAN DEFAULT 1,
-            description TEXT,
-            created_by TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-        """)
-        
-        # --------------------------
-        # DASHBOARD STATISTICS TABLE
-        # --------------------------
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS dashboard_stats(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            stat_date DATE UNIQUE,
-            total_logs INTEGER DEFAULT 0,
-            total_alerts INTEGER DEFAULT 0,
-            critical_alerts INTEGER DEFAULT 0,
-            high_alerts INTEGER DEFAULT 0,
-            medium_alerts INTEGER DEFAULT 0,
-            low_alerts INTEGER DEFAULT 0,
-            unique_ips INTEGER DEFAULT 0,
-            unique_users INTEGER DEFAULT 0,
-            attack_attempts INTEGER DEFAULT 0,
-            anomalies_detected INTEGER DEFAULT 0,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-        """)
-        
-        # --------------------------
-        # SESSION LOGS TABLE
-        # --------------------------
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS session_logs(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT NOT NULL,
-            ip_address TEXT,
-            user_agent TEXT,
-            login_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-            logout_time DATETIME,
-            session_duration INTEGER,
-            status TEXT DEFAULT 'active'
-        )
-        """)
-        
-        # Create indexes for better query performance
-        c.execute("CREATE INDEX IF NOT EXISTS idx_logs_ip ON logs(ip)")
-        c.execute("CREATE INDEX IF NOT EXISTS idx_logs_user ON logs(user)")
-        c.execute("CREATE INDEX IF NOT EXISTS idx_logs_time ON logs(time)")
-        c.execute("CREATE INDEX IF NOT EXISTS idx_attack_history_ip ON attack_history(ip)")
-        c.execute("CREATE INDEX IF NOT EXISTS idx_attack_history_severity ON attack_history(severity)")
-        c.execute("CREATE INDEX IF NOT EXISTS idx_anomaly_logs_ip ON anomaly_logs(ip)")
-        c.execute("CREATE INDEX IF NOT EXISTS idx_alerts_severity ON alerts(severity)")
-        c.execute("CREATE INDEX IF NOT EXISTS idx_alerts_created ON alerts(created_at)")
-        c.execute("CREATE INDEX IF NOT EXISTS idx_audit_logs_user ON audit_logs(user_id)")
-        c.execute("CREATE INDEX IF NOT EXISTS idx_ip_reputation_threat ON ip_reputation(threat_level)")
-        
-        conn.commit()
         print(f"[DB] ✅ Database initialized successfully at: {DB_PATH}")
         return True
         

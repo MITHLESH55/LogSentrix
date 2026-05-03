@@ -7,6 +7,7 @@ except ImportError:
 
 from ip_lookup import check_ip_reputation, get_ip_info
 
+import os
 from collections import Counter
 from pathlib import Path
 import numpy as np
@@ -562,19 +563,16 @@ def get_data():
         return jsonify({"error": str(e)})
 
 
-import os
+
 
 if __name__ == "__main__":
-    # initialize database tables at startup
-    init_db()
-
-    # start real-time log monitoring
+    # Start real-time log monitoring
     monitor_thread = threading.Thread(target=monitor_logs)
     monitor_thread.daemon = True
     monitor_thread.start()
 
-    # get port from environment (for deployment)
+    # Get port from environment (for deployment)
     port = int(os.environ.get("PORT", 5000))
 
-    # run flask app
+    # Run Flask app
     app.run(host="0.0.0.0", port=port)
