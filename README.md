@@ -10,10 +10,6 @@ AI-powered cybersecurity log monitoring and threat detection platform with real-
 
 ---
 
-## LogSentrix
-
-AI-powered cybersecurity log monitoring and threat detection platform with real-time anomaly detection, anomaly analysis, and attack visualization dashboard.
-
 🌐 **[Live Demo](https://mithleshyadav.pythonanywhere.com/)**  
 💻 **[GitHub Repository](https://github.com/MITHLESH55/LogSentrix)**
 
